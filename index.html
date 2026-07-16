@@ -3,1050 +3,378 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>當沖損益計算機</title>
-
-  <!-- PWA：加到主畫面後以全螢幕 App 模式啟動 -->
+  <title>當沖計算機</title>
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="當沖計算機" />
-  <meta name="theme-color" content="#0a0e17" />
-  <meta name="description" content="台股當沖損益試算，含手續費(28折)與當沖減半交易稅" />
-
-  <!-- App 圖示 -->
+  <meta name="theme-color" content="#f2f2f7" />
   <link rel="manifest" href="manifest.json" />
   <link rel="apple-touch-icon" href="icon-192.png" />
-  <link rel="icon" type="image/png" href="icon-192.png" />
-
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&family=Share+Tech+Mono&display=swap');
-
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap');
     :root {
-      --bg: #0a0e17;
-      --surface: #111827;
-      --card: #161f2e;
-      --border: #1e3a5f;
-      --accent: #00d4ff;
-      --accent2: #00ff88;
-      --danger: #ff4d6d;
-      --gold: #ffd700;
-      --text: #e2eaf5;
-      --muted: #5a7a9a;
-      --glow: 0 0 20px rgba(0, 212, 255, 0.3);
+      --bg:#f2f2f7; --card:#ffffff; --border:#e5e5ea;
+      --accent:#007aff; --green:#34c759; --red:#ff3b30; --orange:#ff9500;
+      --text:#000000; --text2:#3c3c43; --text3:#8e8e93;
     }
-
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-
-    body {
-      font-family: 'Noto Sans TC', sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: flex-start;
-      padding: 40px 24px;
-      background-image:
-        radial-gradient(ellipse at 20% 0%, rgba(0,100,200,0.12) 0%, transparent 50%),
-        radial-gradient(ellipse at 80% 100%, rgba(0,200,120,0.08) 0%, transparent 50%);
-    }
-
-    /* ── Header ── */
-    .header {
-      text-align: center;
-      margin-bottom: 36px;
-      width: 100%;
-    }
-
-    .header h1 {
-      font-size: 2rem;
-      font-weight: 700;
-      letter-spacing: 0.08em;
-      background: linear-gradient(135deg, var(--accent), var(--accent2));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-      margin-bottom: 6px;
-    }
-
-    .header p {
-      font-size: 0.8rem;
-      color: var(--muted);
-      letter-spacing: 0.15em;
-      text-transform: uppercase;
-    }
-
-    .ticker-line {
-      font-family: 'Share Tech Mono', monospace;
-      font-size: 0.7rem;
-      color: var(--accent);
-      opacity: 0.5;
-      letter-spacing: 0.2em;
-      margin-top: 4px;
-    }
-
-    /* ── Main layout: side by side ── */
-    .main-layout {
-      display: flex;
-      gap: 20px;
-      width: 100%;
-      max-width: 1240px;
-      align-items: stretch;
-    }
-
-    /* ── Input card (left) ── */
-    .card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 32px;
-      flex: 0 0 340px;
-      box-shadow: 0 8px 40px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.04);
-    }
-
-    /* ── Result panel (right) ── */
-    .result-panel {
-      flex: 1;
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 32px;
-      box-shadow: 0 8px 40px rgba(0,0,0,0.3);
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-    }
-
-    .result-panel.empty {
-      align-items: center;
-      justify-content: center;
-    }
-
-    .empty-msg {
-      text-align: center;
-      color: var(--muted);
-    }
-
-    .empty-msg .empty-icon {
-      font-size: 2.8rem;
-      margin-bottom: 12px;
-      opacity: 0.3;
-    }
-
-    .empty-msg p {
-      font-size: 0.78rem;
-      letter-spacing: 0.1em;
-      opacity: 0.6;
-      line-height: 2;
-    }
-
-    /* ── Shared section label ── */
-    .section-label {
-      font-size: 0.65rem;
-      text-transform: uppercase;
-      letter-spacing: 0.2em;
-      color: var(--muted);
-      margin-bottom: 16px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .section-label::after {
-      content: '';
-      flex: 1;
-      height: 1px;
-      background: linear-gradient(to right, var(--border), transparent);
-    }
-
-    /* ── Inputs ── */
-    .input-group { margin-bottom: 20px; }
-
-    .input-group label {
-      display: block;
-      font-size: 0.78rem;
-      font-weight: 500;
-      color: var(--muted);
-      margin-bottom: 8px;
-      letter-spacing: 0.05em;
-    }
-
-    .input-wrap {
-      position: relative;
-      display: flex;
-      align-items: center;
-    }
-
-    .input-wrap span {
-      position: absolute;
-      left: 14px;
-      font-family: 'Share Tech Mono', monospace;
-      font-size: 0.85rem;
-      color: var(--muted);
-      pointer-events: none;
-    }
-
-    .input-wrap input {
-      width: 100%;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 13px 38px 13px 30px;
-      font-family: 'Share Tech Mono', monospace;
-      font-size: 1.1rem;
-      color: var(--text);
-      outline: none;
-      transition: border-color 0.2s, box-shadow 0.2s;
-    }
-
-    /* 隱藏原生 number spinner，改用自訂上下調整鈕 */
-    .input-wrap input::-webkit-outer-spin-button,
-    .input-wrap input::-webkit-inner-spin-button {
-      -webkit-appearance: none;
-      margin: 0;
-    }
-    .input-wrap input[type="number"] {
-      -moz-appearance: textfield;
-    }
-
-    .tick-stepper {
-      position: absolute;
-      right: 6px;
-      top: 50%;
-      transform: translateY(-50%);
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
-
-    .tick-stepper button {
-      width: 22px;
-      height: 16px;
-      border: 1px solid var(--border);
-      background: var(--card);
-      color: var(--muted);
-      border-radius: 4px;
-      font-size: 0.55rem;
-      line-height: 1;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 0;
-      transition: all 0.15s;
-    }
-
-    .tick-stepper button:hover {
-      color: var(--accent);
-      border-color: var(--accent);
-    }
-
-    .tick-stepper button:active {
-      transform: scale(0.92);
-    }
-
-    .input-wrap input:focus {
-      border-color: var(--accent);
-      box-shadow: var(--glow);
-    }
-
-    .input-wrap input::placeholder { color: var(--muted); }
-
-    .divider {
-      height: 1px;
-      background: linear-gradient(to right, transparent, var(--border), transparent);
-      margin: 24px 0;
-    }
-
-    /* ── Buttons ── */
-    .btn {
-      width: 100%;
-      padding: 15px;
-      border: none;
-      border-radius: 10px;
-      font-family: 'Noto Sans TC', sans-serif;
-      font-size: 1rem;
-      font-weight: 700;
-      letter-spacing: 0.1em;
-      cursor: pointer;
-      transition: all 0.2s;
-      background: linear-gradient(135deg, #0080c0, #00d4ff);
-      color: #000;
-      box-shadow: 0 4px 20px rgba(0, 212, 255, 0.25);
-    }
-
-    .btn:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 6px 28px rgba(0, 212, 255, 0.4);
-    }
-
-    .btn:active { transform: translateY(0); }
-
-    .btn-reset {
-      margin-top: 10px;
-      background: transparent;
-      color: var(--muted);
-      border: 1px solid var(--border);
-      box-shadow: none;
-      font-weight: 400;
-      font-size: 0.85rem;
-    }
-
-    .btn-reset:hover {
-      color: var(--text);
-      border-color: var(--muted);
-      box-shadow: none;
-      transform: none;
-    }
-
-    /* ── Result grid ── */
-    .result-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-      margin-bottom: 16px;
-    }
-
-    .result-item {
-      background: var(--surface);
-      border-radius: 10px;
-      padding: 14px 16px;
-      border: 1px solid var(--border);
-    }
-
-    .result-item .r-label {
-      font-size: 0.68rem;
-      color: var(--muted);
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      margin-bottom: 6px;
-    }
-
-    .result-item .r-val {
-      font-family: 'Share Tech Mono', monospace;
-      font-size: 1.05rem;
-      font-weight: 700;
-      color: var(--text);
-    }
-
-    /* ── PnL block ── */
-    .pnl-block {
-      border-radius: 12px;
-      padding: 20px 22px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      border: 1px solid transparent;
-      transition: all 0.4s;
-      margin-bottom: 14px;
-    }
-
-    .pnl-block.profit {
-      background: linear-gradient(135deg, rgba(255,77,109,0.08), rgba(200,40,70,0.04));
-      border-color: rgba(255,77,109,0.25);
-    }
-
-    .pnl-block.loss {
-      background: linear-gradient(135deg, rgba(0,255,136,0.08), rgba(0,180,100,0.04));
-      border-color: rgba(0,255,136,0.25);
-    }
-
-    .pnl-block.even {
-      background: linear-gradient(135deg, rgba(255,215,0,0.06), rgba(200,170,0,0.03));
-      border-color: rgba(255,215,0,0.2);
-    }
-
-    .pnl-left .pnl-label {
-      font-size: 0.68rem;
-      text-transform: uppercase;
-      letter-spacing: 0.15em;
-      color: var(--muted);
-      margin-bottom: 6px;
-    }
-
-    .pnl-left .pnl-amount {
-      font-family: 'Share Tech Mono', monospace;
-      font-size: 1.8rem;
-      font-weight: 700;
-    }
-
-    .pnl-right .pnl-rate {
-      font-family: 'Share Tech Mono', monospace;
-      font-size: 1.5rem;
-      font-weight: 700;
-      text-align: right;
-    }
-
-    .pnl-right .pnl-rate-label {
-      font-size: 0.65rem;
-      color: var(--muted);
-      text-align: right;
-      letter-spacing: 0.1em;
-      margin-top: 4px;
-    }
-
-    .profit .pnl-amount,
-    .profit .pnl-rate { color: var(--danger); }
-
-    .loss .pnl-amount,
-    .loss .pnl-rate { color: var(--accent2); }
-
-    .even .pnl-amount,
-    .even .pnl-rate { color: var(--gold); }
-
-    /* ── Formula note ── */
-    .formula-note {
-      padding: 11px 14px;
-      background: rgba(255,255,255,0.02);
-      border-radius: 8px;
-      border-left: 2px solid var(--border);
-      font-size: 0.68rem;
-      color: var(--muted);
-      line-height: 1.9;
-    }
-
-    /* ── Animate in ── */
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateX(10px); }
-      to   { opacity: 1; transform: translateX(0); }
-    }
-
-    .result-content { display: none; }
-    .result-panel.show .result-content.active {
-      display: block;
-      animation: fadeIn 0.35s ease forwards;
-    }
-    .result-panel.show .empty-msg { display: none; }
-
-    .be-price-line {
-      font-family: 'Share Tech Mono', monospace;
-      font-size: 1.3rem;
-      font-weight: 700;
-      color: var(--accent);
-      background: rgba(0,212,255,0.06);
-      border: 1px solid rgba(0,212,255,0.2);
-      border-radius: 10px;
-      padding: 14px 18px;
-      margin-bottom: 16px;
-      text-align: center;
-    }
-
-    /* ── Breakeven section ── */
-    .breakeven-card {
-      flex: 0 0 280px;
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 24px;
-      box-shadow: 0 8px 40px rgba(0,0,0,0.3);
-    }
-
-    .breakeven-grid {
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 18px;
-    }
-
-    .breakeven-col {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 16px;
-    }
-
-    .breakeven-col h3 {
-      font-size: 0.74rem;
-      font-weight: 500;
-      color: var(--accent);
-      margin-bottom: 12px;
-      letter-spacing: 0.03em;
-      line-height: 1.5;
-    }
-
-    .breakeven-row {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    .breakeven-row .input-wrap input { font-size: 0.95rem; padding: 11px 34px 11px 26px; }
-    .breakeven-row .input-wrap span { font-size: 0.78rem; left: 12px; }
-    .breakeven-row .tick-stepper { right: 5px; }
-
-    .btn-mini {
-      width: 100%;
-      padding: 10px;
-      border: none;
-      border-radius: 8px;
-      background: linear-gradient(135deg, #0080c0, #00d4ff);
-      color: #000;
-      font-weight: 700;
-      font-size: 0.8rem;
-      cursor: pointer;
-      letter-spacing: 0.05em;
-    }
-
-    .btn-mini:hover { filter: brightness(1.1); }
-
-    .breakeven-note {
-      margin-top: 16px;
-      padding: 10px 12px;
-      background: rgba(255,255,255,0.02);
-      border-radius: 8px;
-      border-left: 2px solid var(--border);
-      font-size: 0.62rem;
-      color: var(--muted);
-      line-height: 1.7;
-    }
-
-    /* ── Responsive: 平板以下三欄改堆疊 ── */
-    @media (max-width: 1000px) {
-      body { padding: 20px 16px; }
-      .main-layout { flex-direction: column; }
-      .card, .breakeven-card { flex: none; width: 100%; }
-      .breakeven-grid { grid-template-columns: 1fr 1fr; }
-    }
-
-    /* ── 手機版（≤600px）全面優化 ── */
-    @media (max-width: 600px) {
-      body {
-        padding: 16px 12px;
-        /* iOS 劉海/圓角安全區域 */
-        padding-top: max(16px, env(safe-area-inset-top));
-        padding-bottom: max(24px, env(safe-area-inset-bottom));
-        padding-left: max(12px, env(safe-area-inset-left));
-        padding-right: max(12px, env(safe-area-inset-right));
-      }
-
-      .header { margin-bottom: 20px; }
-      .header h1 { font-size: 1.4rem; }
-      .header p { font-size: 0.7rem; }
-      .ticker-line { font-size: 0.62rem; }
-
-      .main-layout { gap: 14px; }
-      .card, .breakeven-card { padding: 20px 18px; border-radius: 14px; }
-
-      /* 防止 iOS 輸入框自動放大（font-size < 16px 會觸發縮放） */
-      .input-wrap input {
-        font-size: 16px !important;
-        padding: 14px 42px 14px 30px;
-        border-radius: 10px;
-      }
-
-      .input-group { margin-bottom: 16px; }
-      .input-group label { font-size: 0.82rem; }
-
-      /* 加大按鈕觸控區域（Apple HIG 建議最小 44pt） */
-      .btn { padding: 17px; font-size: 1rem; min-height: 52px; }
-      .btn-reset { min-height: 44px; }
-
-      .tick-stepper button {
-        width: 28px;
-        height: 20px;
-        font-size: 0.65rem;
-      }
-
-      .result-panel { padding: 20px 18px; border-radius: 14px; }
-
-      .result-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
-      .result-item { padding: 11px 12px; }
-      .result-item .r-label { font-size: 0.62rem; }
-      .result-item .r-val { font-size: 0.95rem; }
-
-      .pnl-block { padding: 16px 18px; }
-      .pnl-left .pnl-amount { font-size: 1.5rem; }
-      .pnl-right .pnl-rate  { font-size: 1.25rem; }
-
-      .be-price-line { font-size: 1.1rem; padding: 12px 14px; }
-      .formula-note { font-size: 0.65rem; line-height: 1.8; }
-
-      /* 損益兩平試算：手機改單欄 */
-      .breakeven-grid { grid-template-columns: 1fr; gap: 12px; }
-      .breakeven-col h3 { font-size: 0.78rem; }
-      .breakeven-row .input-wrap input { font-size: 16px !important; padding: 11px 38px 11px 26px; }
-      .btn-mini { padding: 13px; font-size: 0.85rem; min-height: 44px; }
-    }
+    *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+    body{font-family:'Noto Sans TC',-apple-system,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+    .screen{display:none;flex-direction:column;min-height:100vh;}
+    .screen.active{display:flex;}
+    .nav{background:rgba(242,242,247,0.94);backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);border-bottom:1px solid var(--border);padding:max(50px,env(safe-area-inset-top)) 16px 12px;display:flex;align-items:center;gap:8px;position:sticky;top:0;z-index:10;}
+    .nav-title{flex:1;font-size:1.05rem;font-weight:700;text-align:center;}
+    .back-btn{display:flex;align-items:center;gap:4px;color:var(--accent);font-size:1rem;background:none;border:none;cursor:pointer;padding:4px 0;min-width:64px;}
+    .back-btn svg{width:9px;height:15px;flex-shrink:0;}
+    .nav-spacer{min-width:64px;}
+    .content{flex:1;padding:20px 16px;padding-bottom:max(32px,env(safe-area-inset-bottom));overflow-y:auto;-webkit-overflow-scrolling:touch;}
+    /* Home */
+    .home-hero{text-align:center;padding:28px 0 32px;}
+    .home-hero .icon{font-size:3.2rem;margin-bottom:10px;}
+    .home-hero h1{font-size:1.5rem;font-weight:700;margin-bottom:6px;}
+    .home-hero p{font-size:0.78rem;color:var(--text3);}
+    .section-title{font-size:0.72rem;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;margin:0 4px 8px;}
+    .menu-card{background:var(--card);border-radius:16px;overflow:hidden;margin-bottom:28px;box-shadow:0 1px 3px rgba(0,0,0,0.08);}
+    .menu-item{display:flex;align-items:center;gap:14px;padding:15px 16px;cursor:pointer;border:none;background:none;width:100%;text-align:left;border-bottom:1px solid var(--border);}
+    .menu-item:last-child{border-bottom:none;}
+    .menu-item:active{background:var(--bg);}
+    .menu-icon{width:38px;height:38px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:1.15rem;flex-shrink:0;}
+    .menu-icon.blue{background:#ddeeff;} .menu-icon.green{background:#ddf5e8;} .menu-icon.orange{background:#fff0d6;}
+    .menu-text{flex:1;}
+    .menu-text strong{display:block;font-size:0.93rem;font-weight:600;margin-bottom:2px;}
+    .menu-text span{font-size:0.76rem;color:var(--text3);}
+    .menu-chevron{color:#c7c7cc;font-size:1rem;font-weight:300;}
+    .info-note{background:var(--card);border-radius:12px;padding:13px 15px;font-size:0.72rem;color:var(--text3);line-height:1.85;box-shadow:0 1px 3px rgba(0,0,0,0.06);}
+    /* Input */
+    .section-label{font-size:0.72rem;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;margin:22px 4px 8px;}
+    .section-label:first-child{margin-top:0;}
+    .input-card{background:var(--card);border-radius:16px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.08);}
+    .input-row{display:flex;align-items:center;padding:13px 16px;border-bottom:1px solid var(--border);}
+    .input-row:last-child{border-bottom:none;}
+    .input-row label{font-size:0.93rem;color:var(--text);min-width:90px;flex-shrink:0;}
+    .input-right{flex:1;display:flex;align-items:center;gap:5px;justify-content:flex-end;}
+    .price-prefix{font-size:0.88rem;color:var(--text3);}
+    .price-input{font-size:1.05rem;font-weight:500;color:var(--text);border:none;outline:none;background:transparent;text-align:right;width:100px;padding:0;-moz-appearance:textfield;}
+    .price-input::-webkit-outer-spin-button,.price-input::-webkit-inner-spin-button{-webkit-appearance:none;}
+    .price-input::placeholder{color:#c7c7cc;}
+    .unit{font-size:0.8rem;color:var(--text3);}
+    .tick-btns{display:flex;flex-direction:column;gap:2px;margin-left:3px;}
+    .tick-btn{width:26px;height:18px;border:1px solid var(--border);border-radius:5px;background:#f8f8f8;color:var(--text2);font-size:0.54rem;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;}
+    .tick-btn:active{background:var(--border);}
+    /* Button */
+    .calc-btn{width:100%;margin-top:18px;padding:16px;border:none;border-radius:14px;font-family:inherit;font-size:1rem;font-weight:700;color:#fff;background:var(--accent);cursor:pointer;min-height:52px;}
+    .calc-btn:active{opacity:0.82;}
+    /* Results */
+    .result-card{background:var(--card);border-radius:16px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.08);}
+    .result-row{display:flex;justify-content:space-between;align-items:center;padding:13px 16px;border-bottom:1px solid var(--border);}
+    .result-row:last-child{border-bottom:none;}
+    .r-label{font-size:0.88rem;color:var(--text2);}
+    .r-val{font-size:0.93rem;font-weight:600;color:var(--text);}
+    .be-box{background:var(--card);border-radius:16px;padding:18px 16px;margin-bottom:10px;box-shadow:0 1px 3px rgba(0,0,0,0.08);display:flex;justify-content:space-between;align-items:center;}
+    .be-label{font-size:0.76rem;color:var(--text3);margin-bottom:4px;}
+    .be-price{font-size:1.9rem;font-weight:700;}
+    .be-tick{font-size:0.7rem;color:var(--text3);text-align:right;}
+    .pnl-box{background:var(--card);border-radius:16px;padding:18px 16px;margin-bottom:10px;box-shadow:0 1px 3px rgba(0,0,0,0.08);display:flex;justify-content:space-between;align-items:center;}
+    .pnl-amount{font-size:1.9rem;font-weight:700;}
+    .pnl-rate{font-size:1.3rem;font-weight:700;text-align:right;}
+    .pnl-rate-label{font-size:0.7rem;color:var(--text3);text-align:right;margin-top:2px;}
+    .text-red{color:var(--red);} .text-green{color:var(--green);} .text-orange{color:var(--orange);} .text-blue{color:var(--accent);}
+    .formula-note{margin-top:10px;padding:12px 14px;background:var(--card);border-radius:12px;font-size:0.7rem;color:var(--text3);line-height:1.9;box-shadow:0 1px 3px rgba(0,0,0,0.06);}
+    @keyframes slideUp{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+    .result-anim{animation:slideUp 0.28s ease;}
   </style>
 </head>
 <body>
 
-  <div class="header">
-    <h1>股票當沖損益計算機</h1>
-    <p>Taiwan Stock · Day Trading P&amp;L Calculator</p>
-    <div class="ticker-line">▸ TWSE · 1 張 (1000 股) · 手續費折扣 28折 ◂</div>
-  </div>
-
-  <div class="main-layout">
-
-    <!-- 損益兩平價格試算 -->
-    <div class="breakeven-card">
-      <div class="section-label">損益兩平試算</div>
-      <div class="breakeven-grid">
-
-        <div class="breakeven-col">
-          <h3>已知買入價 → 求賣出兩平價</h3>
-          <div class="breakeven-row">
-            <div class="input-wrap">
-              <span>$</span>
-              <input type="number" id="beBuyInput" placeholder="買入股價" min="0" step="0.01" />
-              <div class="tick-stepper">
-                <button type="button" onclick="tickStep('beBuyInput', 1)">▲</button>
-                <button type="button" onclick="tickStep('beBuyInput', -1)">▼</button>
-              </div>
-            </div>
-            <button class="btn-mini" onclick="calcBreakevenSell()">試算</button>
-          </div>
-        </div>
-
-        <div class="breakeven-col">
-          <h3>已知賣出價 → 求買入兩平價</h3>
-          <div class="breakeven-row">
-            <div class="input-wrap">
-              <span>$</span>
-              <input type="number" id="beSellInput" placeholder="賣出股價" min="0" step="0.01" />
-              <div class="tick-stepper">
-                <button type="button" onclick="tickStep('beSellInput', 1)">▲</button>
-                <button type="button" onclick="tickStep('beSellInput', -1)">▼</button>
-              </div>
-            </div>
-            <button class="btn-mini" onclick="calcBreakevenBuy()">試算</button>
-          </div>
-        </div>
-
-      </div>
-      <div class="breakeven-note">
-        台股升降單位（Tick）：&lt;10元→0.01；10–50元→0.05；50–100元→0.1；100–500元→0.5；500–1000元→1；≥1000元→5。結果已對齊合法跳動單位，並確保損益 ≥ 0。
-      </div>
+<!-- 首頁 -->
+<div id="screen-home" class="screen active">
+  <div class="content">
+    <div class="home-hero">
+      <div class="icon">📈</div>
+      <h1>當沖計算機</h1>
+      <p>TWSE · 1張(1000股) · 手續費28折 · 當沖減半交易稅</p>
     </div>
 
-    <!-- 左側：輸入區 -->
-    <div class="card">
-      <div class="section-label">交易資訊</div>
-
-      <div class="input-group">
-        <label>買入股價（元）</label>
-        <div class="input-wrap">
-          <span>$</span>
-          <input type="number" id="buyPrice" placeholder="0.00" min="0" step="0.01" />
-          <div class="tick-stepper">
-            <button type="button" onclick="tickStep('buyPrice', 1)">▲</button>
-            <button type="button" onclick="tickStep('buyPrice', -1)">▼</button>
-          </div>
+    <div class="section-title">損益兩平試算</div>
+    <div class="menu-card">
+      <button class="menu-item" onclick="goto('screen-sell-be')">
+        <div class="menu-icon blue">📉</div>
+        <div class="menu-text">
+          <strong>已知買入價 → 賣出兩平價</strong>
+          <span>輸入買入股價，計算最低需賣幾元才打平</span>
         </div>
-      </div>
-
-      <div class="input-group">
-        <label>賣出股價（元）</label>
-        <div class="input-wrap">
-          <span>$</span>
-          <input type="number" id="sellPrice" placeholder="0.00" min="0" step="0.01" />
-          <div class="tick-stepper">
-            <button type="button" onclick="tickStep('sellPrice', 1)">▲</button>
-            <button type="button" onclick="tickStep('sellPrice', -1)">▼</button>
-          </div>
+        <span class="menu-chevron">›</span>
+      </button>
+      <button class="menu-item" onclick="goto('screen-buy-be')">
+        <div class="menu-icon green">📈</div>
+        <div class="menu-text">
+          <strong>已知賣出價 → 買入兩平價</strong>
+          <span>輸入賣出股價，計算最高可用幾元買入</span>
         </div>
-      </div>
-
-      <div class="divider"></div>
-
-      <button class="btn" onclick="calculate()">計 算 損 益</button>
-      <button class="btn btn-reset" onclick="reset()">清除重算</button>
+        <span class="menu-chevron">›</span>
+      </button>
     </div>
 
-    <!-- 右側：結果區 -->
-    <div class="result-panel empty" id="resultPanel">
-
-      <div class="empty-msg" id="emptyMsg">
-        <div class="empty-icon">📊</div>
-        <p>輸入股價後按下計算</p>
-        <p>結果將顯示於此</p>
-      </div>
-
-      <div class="result-content" id="mainResultContent">
-        <div class="section-label">計算結果</div>
-
-        <div class="result-grid">
-          <div class="result-item">
-            <div class="r-label">買入總額</div>
-            <div class="r-val" id="buyTotal">—</div>
-          </div>
-          <div class="result-item">
-            <div class="r-label">賣出總額</div>
-            <div class="r-val" id="sellTotal">—</div>
-          </div>
-          <div class="result-item">
-            <div class="r-label">手續費</div>
-            <div class="r-val" id="commission">—</div>
-          </div>
-          <div class="result-item">
-            <div class="r-label">交易稅（當沖減半）</div>
-            <div class="r-val" id="tax">—</div>
-          </div>
+    <div class="section-title">損益計算</div>
+    <div class="menu-card">
+      <button class="menu-item" onclick="goto('screen-pnl')">
+        <div class="menu-icon orange">💰</div>
+        <div class="menu-text">
+          <strong>計算損益</strong>
+          <span>輸入買入與賣出股價，計算實際損益金額</span>
         </div>
+        <span class="menu-chevron">›</span>
+      </button>
+    </div>
 
-        <div class="pnl-block" id="pnlBlock">
-          <div class="pnl-left">
-            <div class="pnl-label">損　益</div>
-            <div class="pnl-amount" id="pnlAmount">—</div>
-          </div>
-          <div class="pnl-right">
-            <div class="pnl-rate" id="pnlRate">—</div>
-            <div class="pnl-rate-label">損益率</div>
-          </div>
-        </div>
-
-        <div class="formula-note">
-          手續費 = (買入×1000×0.1425%×0.28) + (賣出×1000×0.1425%×0.28)，各自四捨五入<br>
-          交易稅 = 賣出×1000×0.3%÷2（當沖減半）<br>
-          損益 = 賣出總額 − 買入總額 − 手續費 − 交易稅
-        </div>
-      </div>
-
-      <div class="result-content" id="breakevenResultContent">
-        <div class="section-label" id="beResultLabel">損益兩平試算結果</div>
-
-        <div class="be-price-line" id="bePriceLine">—</div>
-
-        <div class="result-grid">
-          <div class="result-item">
-            <div class="r-label">買入總額</div>
-            <div class="r-val" id="beBuyTotal">—</div>
-          </div>
-          <div class="result-item">
-            <div class="r-label">賣出總額</div>
-            <div class="r-val" id="beSellTotal">—</div>
-          </div>
-          <div class="result-item">
-            <div class="r-label">手續費</div>
-            <div class="r-val" id="beCommission">—</div>
-          </div>
-          <div class="result-item">
-            <div class="r-label">交易稅（當沖減半）</div>
-            <div class="r-val" id="beTax">—</div>
-          </div>
-        </div>
-
-        <div class="pnl-block" id="bePnlBlock">
-          <div class="pnl-left">
-            <div class="pnl-label">損　益</div>
-            <div class="pnl-amount" id="bePnlAmount">—</div>
-          </div>
-          <div class="pnl-right">
-            <div class="pnl-rate" id="bePnlRate">—</div>
-            <div class="pnl-rate-label">損益率</div>
-          </div>
-        </div>
-
-        <div class="formula-note">
-          此為依台股升降單位（Tick）對齊後，最接近且確保損益 ≥ 0 的兩平價位試算結果。<br>
-          手續費 = (買入×1000×0.1425%×0.28) + (賣出×1000×0.1425%×0.28)，各自四捨五入<br>
-          交易稅 = 賣出×1000×0.3%÷2（當沖減半）
-        </div>
-      </div>
-
+    <div class="info-note">
+      手續費 = 成交金額 × 0.1425% × 28折，買賣各計<br>
+      證交稅 = 賣出金額 × 0.3% ÷ 2（當沖減半）<br>
+      升降單位：&lt;10→0.01 · 10–50→0.05 · 50–100→0.1 · 100–500→0.5 · 500–1000→1 · ≥1000→5
     </div>
   </div>
+</div>
 
-  <script>
-    function fmt(n) {
-      return n.toLocaleString('zh-TW', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+<!-- 已知買入價→賣出兩平價 -->
+<div id="screen-sell-be" class="screen">
+  <div class="nav">
+    <button class="back-btn" onclick="goto('screen-home')">
+      <svg viewBox="0 0 9 15" fill="none"><path d="M8 1L1 7.5L8 14" stroke="#007aff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      首頁
+    </button>
+    <div class="nav-title">已知買入價</div>
+    <div class="nav-spacer"></div>
+  </div>
+  <div class="content">
+    <div class="section-label">輸入買入股價</div>
+    <div class="input-card">
+      <div class="input-row">
+        <label>買入股價</label>
+        <div class="input-right">
+          <span class="price-prefix">$</span>
+          <input class="price-input" id="sb-buy" type="number" inputmode="decimal" placeholder="0.00" min="0" step="any" />
+          <span class="unit">元</span>
+          <div class="tick-btns">
+            <button class="tick-btn" onclick="tickStep('sb-buy',1,'sb-buy')">▲</button>
+            <button class="tick-btn" onclick="tickStep('sb-buy',-1,'sb-buy')">▼</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <button class="calc-btn" onclick="calcSellBE()">計算賣出兩平價</button>
+    <div id="sell-be-result"></div>
+  </div>
+</div>
+
+<!-- 已知賣出價→買入兩平價 -->
+<div id="screen-buy-be" class="screen">
+  <div class="nav">
+    <button class="back-btn" onclick="goto('screen-home')">
+      <svg viewBox="0 0 9 15" fill="none"><path d="M8 1L1 7.5L8 14" stroke="#007aff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      首頁
+    </button>
+    <div class="nav-title">已知賣出價</div>
+    <div class="nav-spacer"></div>
+  </div>
+  <div class="content">
+    <div class="section-label">輸入賣出股價</div>
+    <div class="input-card">
+      <div class="input-row">
+        <label>賣出股價</label>
+        <div class="input-right">
+          <span class="price-prefix">$</span>
+          <input class="price-input" id="bb-sell" type="number" inputmode="decimal" placeholder="0.00" min="0" step="any" />
+          <span class="unit">元</span>
+          <div class="tick-btns">
+            <button class="tick-btn" onclick="tickStep('bb-sell',1,'bb-sell')">▲</button>
+            <button class="tick-btn" onclick="tickStep('bb-sell',-1,'bb-sell')">▼</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <button class="calc-btn" onclick="calcBuyBE()">計算買入兩平價</button>
+    <div id="buy-be-result"></div>
+  </div>
+</div>
+
+<!-- 計算損益 -->
+<div id="screen-pnl" class="screen">
+  <div class="nav">
+    <button class="back-btn" onclick="goto('screen-home')">
+      <svg viewBox="0 0 9 15" fill="none"><path d="M8 1L1 7.5L8 14" stroke="#007aff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      首頁
+    </button>
+    <div class="nav-title">計算損益</div>
+    <div class="nav-spacer"></div>
+  </div>
+  <div class="content">
+    <div class="section-label">輸入買賣股價</div>
+    <div class="input-card">
+      <div class="input-row">
+        <label>買入股價</label>
+        <div class="input-right">
+          <span class="price-prefix">$</span>
+          <input class="price-input" id="pnl-buy" type="number" inputmode="decimal" placeholder="0.00" min="0" step="any" />
+          <span class="unit">元</span>
+          <div class="tick-btns">
+            <button class="tick-btn" onclick="tickStep('pnl-buy',1,'pnl-sell')">▲</button>
+            <button class="tick-btn" onclick="tickStep('pnl-buy',-1,'pnl-sell')">▼</button>
+          </div>
+        </div>
+      </div>
+      <div class="input-row">
+        <label>賣出股價</label>
+        <div class="input-right">
+          <span class="price-prefix">$</span>
+          <input class="price-input" id="pnl-sell" type="number" inputmode="decimal" placeholder="0.00" min="0" step="any" />
+          <span class="unit">元</span>
+          <div class="tick-btns">
+            <button class="tick-btn" onclick="tickStep('pnl-sell',1,'pnl-buy')">▲</button>
+            <button class="tick-btn" onclick="tickStep('pnl-sell',-1,'pnl-buy')">▼</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <button class="calc-btn" onclick="calcPNL()">計算損益</button>
+    <div id="pnl-result"></div>
+  </div>
+</div>
+
+<script>
+  function goto(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    const t = document.getElementById(id);
+    t.classList.add('active');
+    if (t.querySelector('.content')) t.querySelector('.content').scrollTop = 0;
+    if (id === 'screen-home') {
+      ['sell-be-result','buy-be-result','pnl-result'].forEach(r => { const e=document.getElementById(r); if(e)e.innerHTML=''; });
+      ['sb-buy','bb-sell','pnl-buy','pnl-sell'].forEach(i => { const e=document.getElementById(i); if(e)e.value=''; });
     }
+  }
 
-    function calculate() {
-      const buy  = parseFloat(document.getElementById('buyPrice').value);
-      const sell = parseFloat(document.getElementById('sellPrice').value);
+  function getTickUp(p)  { if(p<10)return 0.01; if(p<50)return 0.05; if(p<100)return 0.1; if(p<500)return 0.5; if(p<1000)return 1; return 5; }
+  function getTickDown(p){ if(p<=10)return 0.01; if(p<=50)return 0.05; if(p<=100)return 0.1; if(p<=500)return 0.5; if(p<=1000)return 1; return 5; }
+  function getTick(p)    { return getTickUp(p); }
+  function rn(n,d=2)     { return Math.round(n*Math.pow(10,d))/Math.pow(10,d); }
+  function roundToTick(p){ const t=getTick(p); return Math.round(Math.round(p/t)*t*100)/100; }
+  function stepVal(base,dir){ return dir>0 ? rn(base+getTickUp(base)) : Math.max(0,rn(base-getTickDown(base))); }
 
-      if (isNaN(buy) || isNaN(sell) || buy <= 0 || sell <= 0) {
-        alert('請輸入有效的買入與賣出股價！');
-        return;
-      }
+  function tickStep(selfId, dir, refId) {
+    const el=document.getElementById(selfId), ref=document.getElementById(refId||selfId);
+    let base=parseFloat(el.value);
+    if(isNaN(base)||el.value==='') base=parseFloat(ref.value);
+    if(isNaN(base)||base<0) base=0;
+    el.value=parseFloat(stepVal(base,dir).toFixed(2));
+    el.dispatchEvent(new Event('input'));
+  }
 
-      const buyTotal  = buy  * 1000;
-      const sellTotal = sell * 1000;
+  function calcDetail(buy, sell) {
+    const bt=buy*1000, st=sell*1000;
+    const cb=Math.round(bt*0.001425*0.28), cs=Math.round(st*0.001425*0.28), tx=st*0.003/2;
+    const pnl=st-bt-cb-cs-tx;
+    return { bt, st, comm:cb+cs, tx, pnl, rate:pnl/bt*100 };
+  }
+  function rawPnl(buy,sell){ return calcDetail(buy,sell).pnl; }
 
-      const commBuy    = Math.round(buyTotal  * 0.001425 * 0.28);
-      const commSell   = Math.round(sellTotal * 0.001425 * 0.28);
-      const commission = commBuy + commSell;
+  function findSell(buy) {
+    const cb=Math.round(buy*1000*0.001425*0.28);
+    let p=roundToTick((buy*1000+cb)/998.5), g=0;
+    while(rawPnl(buy,p)<0&&g<1000){p=roundToTick(p+getTick(p));g++;}
+    g=0; while(g<1000){const lo=roundToTick(p-getTick(p));if(lo>0&&rawPnl(buy,lo)>=0){p=lo;g++;}else break;}
+    return p;
+  }
+  function findBuy(sell) {
+    const st=sell*1000,cs=Math.round(st*0.001425*0.28),tx=st*0.003/2;
+    let p=roundToTick((st-cs-tx)/(1000*(1+0.001425*0.28))), g=0;
+    while(rawPnl(p,sell)<0&&p>0&&g<1000){p=roundToTick(p-getTick(p));g++;}
+    g=0; while(g<1000){const hi=roundToTick(p+getTick(p));if(rawPnl(hi,sell)>=0){p=hi;g++;}else break;}
+    return p;
+  }
 
-      const tax  = sellTotal * 0.003 / 2;
-      const pnl  = sellTotal - buyTotal - commission - tax;
-      const rate = (pnl / buyTotal) * 100;
+  function fm(n){ return n.toLocaleString('zh-TW',{minimumFractionDigits:0,maximumFractionDigits:0}); }
+  function fp(n){ return n.toLocaleString('zh-TW',{minimumFractionDigits:0,maximumFractionDigits:2}); }
+  function cc(pnl){ return pnl>0?'text-red':pnl<0?'text-green':'text-orange'; }
 
-      document.getElementById('buyTotal').textContent   = `$${fmt(buyTotal)}`;
-      document.getElementById('sellTotal').textContent  = `$${fmt(sellTotal)}`;
-      document.getElementById('commission').textContent = `$${fmt(commission)}`;
-      document.getElementById('tax').textContent        = `$${fmt(tax)}`;
+  function detailRows(d) {
+    return `
+      <div class="result-row"><span class="r-label">買入總額</span><span class="r-val">$${fm(d.bt)}</span></div>
+      <div class="result-row"><span class="r-label">賣出總額</span><span class="r-val">$${fm(d.st)}</span></div>
+      <div class="result-row"><span class="r-label">手續費（28折）</span><span class="r-val">$${fm(d.comm)}</span></div>
+      <div class="result-row"><span class="r-label">證交稅（當沖減半）</span><span class="r-val">$${fm(d.tx)}</span></div>`;
+  }
 
-      const sign = pnl >= 0 ? '+' : '';
-      document.getElementById('pnlAmount').textContent = `${sign}$${fmt(pnl)}`;
-      document.getElementById('pnlRate').textContent   = `${sign}${rate.toFixed(2)}%`;
+  function calcSellBE() {
+    const buy=parseFloat(document.getElementById('sb-buy').value);
+    if(isNaN(buy)||buy<=0){alert('請輸入有效的買入股價');return;}
+    const sell=findSell(buy), d=calcDetail(buy,sell);
+    const sign=d.pnl>=0?'+':'', c=cc(d.pnl);
+    document.getElementById('sell-be-result').innerHTML=`<div class="result-anim">
+      <div class="section-label">賣出兩平價</div>
+      <div class="be-box">
+        <div><div class="be-label">至少需賣到（含所有費用）</div><div class="be-price text-blue">$${fp(sell)}</div></div>
+        <div class="be-tick">Tick<br>${getTick(sell)} 元</div>
+      </div>
+      <div class="section-label">損益明細</div>
+      <div class="result-card">${detailRows(d)}
+        <div class="result-row"><span class="r-label">損益</span><span class="r-val ${c}">${sign}$${fm(d.pnl)}</span></div>
+        <div class="result-row"><span class="r-label">損益率</span><span class="r-val ${c}">${sign}${d.rate.toFixed(2)}%</span></div>
+      </div>
+      <div class="formula-note">已對齊台股合法升降單位，為確保損益≥0的最低合法賣出價。</div>
+    </div>`;
+  }
 
-      const block = document.getElementById('pnlBlock');
-      block.className = 'pnl-block ' + (pnl > 0 ? 'profit' : pnl < 0 ? 'loss' : 'even');
+  function calcBuyBE() {
+    const sell=parseFloat(document.getElementById('bb-sell').value);
+    if(isNaN(sell)||sell<=0){alert('請輸入有效的賣出股價');return;}
+    const buy=findBuy(sell), d=calcDetail(buy,sell);
+    const sign=d.pnl>=0?'+':'', c=cc(d.pnl);
+    document.getElementById('buy-be-result').innerHTML=`<div class="result-anim">
+      <div class="section-label">買入兩平價</div>
+      <div class="be-box">
+        <div><div class="be-label">最高買入上限（含所有費用）</div><div class="be-price text-blue">$${fp(buy)}</div></div>
+        <div class="be-tick">Tick<br>${getTick(buy)} 元</div>
+      </div>
+      <div class="section-label">損益明細</div>
+      <div class="result-card">${detailRows(d)}
+        <div class="result-row"><span class="r-label">損益</span><span class="r-val ${c}">${sign}$${fm(d.pnl)}</span></div>
+        <div class="result-row"><span class="r-label">損益率</span><span class="r-val ${c}">${sign}${d.rate.toFixed(2)}%</span></div>
+      </div>
+      <div class="formula-note">已對齊台股合法升降單位，為確保損益≥0的最高合法買入價。</div>
+    </div>`;
+  }
 
-      const panel = document.getElementById('resultPanel');
-      panel.classList.remove('show', 'empty');
-      document.getElementById('mainResultContent').classList.add('active');
-      document.getElementById('breakevenResultContent').classList.remove('active');
-      void panel.offsetWidth;
-      panel.classList.add('show');
-    }
+  function calcPNL() {
+    const buy=parseFloat(document.getElementById('pnl-buy').value);
+    const sell=parseFloat(document.getElementById('pnl-sell').value);
+    if(isNaN(buy)||buy<=0){alert('請輸入有效的買入股價');return;}
+    if(isNaN(sell)||sell<=0){alert('請輸入有效的賣出股價');return;}
+    const d=calcDetail(buy,sell);
+    const sign=d.pnl>=0?'+':'', c=cc(d.pnl);
+    document.getElementById('pnl-result').innerHTML=`<div class="result-anim">
+      <div class="section-label">損益結果</div>
+      <div class="pnl-box">
+        <div><div style="font-size:.74rem;color:var(--text3);margin-bottom:4px;">損益金額</div><div class="pnl-amount ${c}">${sign}$${fm(d.pnl)}</div></div>
+        <div><div class="pnl-rate ${c}">${sign}${d.rate.toFixed(2)}%</div><div class="pnl-rate-label">損益率</div></div>
+      </div>
+      <div class="section-label">費用明細</div>
+      <div class="result-card">${detailRows(d)}</div>
+      <div class="formula-note">
+        手續費 = (買入+賣出) × 1000 × 0.1425% × 28折，各自四捨五入<br>
+        證交稅 = 賣出 × 1000 × 0.3% ÷ 2（當沖減半）
+      </div>
+    </div>`;
+  }
 
-    function reset() {
-      document.getElementById('buyPrice').value  = '';
-      document.getElementById('sellPrice').value = '';
-      document.getElementById('beBuyInput').value  = '';
-      document.getElementById('beSellInput').value = '';
-      const panel = document.getElementById('resultPanel');
-      panel.classList.remove('show');
-      panel.classList.add('empty');
-      document.getElementById('mainResultContent').classList.remove('active');
-      document.getElementById('breakevenResultContent').classList.remove('active');
-    }
+  document.addEventListener('keydown', e => {
+    if(e.key!=='Enter') return;
+    const id=document.activeElement?.id;
+    if(id==='sb-buy') calcSellBE();
+    else if(id==='bb-sell') calcBuyBE();
+    else if(id==='pnl-buy'||id==='pnl-sell') calcPNL();
+  });
 
-    // ── 台股升降單位（Tick）規則 ──
-    // 「向上」進入新區間時使用的 tick（例如 100.0 → 100.5，採新區間 0.5）
-    function getTickUp(price) {
-      if (price < 10)   return 0.01;
-      if (price < 50)   return 0.05;
-      if (price < 100)  return 0.1;
-      if (price < 500)  return 0.5;
-      if (price < 1000) return 1;
-      return 5;
-    }
-
-    // 「向下」跨回前一個區間時使用的 tick（例如 100.0 → 99.9，採前一區間 0.1）
-    function getTickDown(price) {
-      if (price <= 10)   return 0.01;
-      if (price <= 50)   return 0.05;
-      if (price <= 100)  return 0.1;
-      if (price <= 500)  return 0.5;
-      if (price <= 1000) return 1;
-      return 5;
-    }
-
-    // 維持向後相容：一般情境（非跨界）下的 tick 判斷，沿用「向上」規則
-    function getTick(price) {
-      return getTickUp(price);
-    }
-
-    function roundN(n, d = 2) {
-      return Math.round(n * Math.pow(10, d)) / Math.pow(10, d);
-    }
-
-    function roundToTick(price) {
-      const tick = getTick(price);
-      return Math.round(Math.round(price / tick) * tick * 100) / 100;
-    }
-
-    // 依方向（1=向上, -1=向下）計算下一個合法tick價位
-    function stepTickValue(base, direction) {
-      if (direction > 0) {
-        const tick = getTickUp(base);
-        return roundN(base + tick);
-      } else {
-        const tick = getTickDown(base);
-        return Math.max(0, roundN(base - tick));
-      }
-    }
-
-    // 取得輸入框做為「起算基準」的價格：
-    // 1. 若自己已有輸入值，以自己的值為準
-    // 2. 若自己是空的，且提供了參考欄位（refId），則以參考欄位的值為準（買賣互相帶入）
-    // 3. 都沒有則回傳 0
-    function getStepBase(inputEl, refEl) {
-      const own = parseFloat(inputEl.value);
-      if (!isNaN(own) && inputEl.value !== '') return own;
-      if (refEl) {
-        const ref = parseFloat(refEl.value);
-        if (!isNaN(ref) && refEl.value !== '') return ref;
-      }
-      return 0;
-    }
-
-    // 買入／賣出框互相參照對方價格作為起算基準；損益兩平框則各自獨立（無參照對象）
-    const TICK_REF_MAP = {
-      buyPrice:   'sellPrice',
-      sellPrice:  'buyPrice',
-      beBuyInput: null,
-      beSellInput: null
-    };
-
-    function tickStep(inputId, direction) {
-      const inputEl = document.getElementById(inputId);
-      const refId   = TICK_REF_MAP[inputId];
-      const refEl   = refId ? document.getElementById(refId) : null;
-
-      const base = getStepBase(inputEl, refEl);
-      const next = stepTickValue(base, direction);
-
-      inputEl.value = next.toFixed(2);
-      inputEl.dispatchEvent(new Event('input', { bubbles: true }));
-    }
-
-    // 計算指定買入/賣出價組合下的損益（不含整股股數以外的細節，與主計算邏輯一致）
-    function calcPnlRaw(buy, sell) {
-      const buyTotal  = buy  * 1000;
-      const sellTotal = sell * 1000;
-      const commBuy   = Math.round(buyTotal  * 0.001425 * 0.28);
-      const commSell  = Math.round(sellTotal * 0.001425 * 0.28);
-      const tax       = sellTotal * 0.003 / 2;
-      return sellTotal - buyTotal - commBuy - commSell - tax;
-    }
-
-    // 已知買入價，找出「賣出兩平價」：最接近、且合法tick對齊、且損益 >= 0 的最低賣價
-    function findBreakevenSell(buy) {
-      const commBuy = Math.round(buy * 1000 * 0.001425 * 0.28);
-      // 粗估（忽略賣出手續費四捨五入誤差）：sell*998.5 ≈ buy*1000 + commBuy
-      let estimate = (buy * 1000 + commBuy) / 998.5;
-      let price = roundToTick(estimate);
-
-      // 往上修正直到損益 >= 0
-      let guard = 0;
-      while (calcPnlRaw(buy, price) < 0 && guard < 1000) {
-        price = roundToTick(price + getTick(price));
-        guard++;
-      }
-      // 往下檢查，看是否前一個tick也已足夠（取最低可行價）
-      guard = 0;
-      while (guard < 1000) {
-        const lower = roundToTick(price - getTick(price));
-        if (lower > 0 && calcPnlRaw(buy, lower) >= 0) {
-          price = lower;
-          guard++;
-        } else {
-          break;
-        }
-      }
-      return price;
-    }
-
-    // 已知賣出價，找出「買入兩平價」：最接近、且合法tick對齊、且損益 >= 0 的最高買價
-    function findBreakevenBuy(sell) {
-      const sellTotal = sell * 1000;
-      const commSell  = Math.round(sellTotal * 0.001425 * 0.28);
-      const tax       = sellTotal * 0.003 / 2;
-      const netFromSell = sellTotal - commSell - tax;
-      // 粗估（忽略買入手續費四捨五入誤差）：buy*1000*(1+0.001425*0.28) ≈ netFromSell
-      let estimate = netFromSell / (1000 * (1 + 0.001425 * 0.28));
-      let price = roundToTick(estimate);
-
-      // 往下修正直到損益 >= 0
-      let guard = 0;
-      while (calcPnlRaw(price, sell) < 0 && price > 0 && guard < 1000) {
-        price = roundToTick(price - getTick(price));
-        guard++;
-      }
-      // 往上檢查，看是否還能再買貴一點仍然打平（取最高可行價）
-      guard = 0;
-      while (guard < 1000) {
-        const higher = roundToTick(price + getTick(price));
-        if (calcPnlRaw(higher, sell) >= 0) {
-          price = higher;
-          guard++;
-        } else {
-          break;
-        }
-      }
-      return price;
-    }
-
-    // 計算指定買入/賣出價組合下的完整損益明細
-    function calcPnlDetail(buy, sell) {
-      const buyTotal  = buy  * 1000;
-      const sellTotal = sell * 1000;
-      const commBuy   = Math.round(buyTotal  * 0.001425 * 0.28);
-      const commSell  = Math.round(sellTotal * 0.001425 * 0.28);
-      const commission = commBuy + commSell;
-      const tax  = sellTotal * 0.003 / 2;
-      const pnl  = sellTotal - buyTotal - commission - tax;
-      const rate = (pnl / buyTotal) * 100;
-      return { buyTotal, sellTotal, commission, tax, pnl, rate };
-    }
-
-    function fmtMoney(n) {
-      return n.toLocaleString('zh-TW', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
-    }
-
-    function fmtPrice(n) {
-      return n.toLocaleString('zh-TW', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    }
-
-    // 將兩平試算結果渲染到右側結果框
-    function renderBreakevenResult(label, priceLineText, buy, sell) {
-      const d = calcPnlDetail(buy, sell);
-      const sign = d.pnl >= 0 ? '+' : '';
-
-      document.getElementById('beResultLabel').textContent = label;
-      document.getElementById('bePriceLine').textContent    = priceLineText;
-
-      document.getElementById('beBuyTotal').textContent   = `$${fmtMoney(d.buyTotal)}`;
-      document.getElementById('beSellTotal').textContent  = `$${fmtMoney(d.sellTotal)}`;
-      document.getElementById('beCommission').textContent = `$${fmtMoney(d.commission)}`;
-      document.getElementById('beTax').textContent        = `$${fmtMoney(d.tax)}`;
-
-      document.getElementById('bePnlAmount').textContent = `${sign}$${fmtMoney(d.pnl)}`;
-      document.getElementById('bePnlRate').textContent   = `${sign}${d.rate.toFixed(2)}%`;
-
-      const block = document.getElementById('bePnlBlock');
-      block.className = 'pnl-block ' + (d.pnl > 0 ? 'profit' : d.pnl < 0 ? 'loss' : 'even');
-
-      const panel = document.getElementById('resultPanel');
-      panel.classList.remove('show', 'empty');
-      document.getElementById('breakevenResultContent').classList.add('active');
-      document.getElementById('mainResultContent').classList.remove('active');
-      void panel.offsetWidth;
-      panel.classList.add('show');
-    }
-
-    function calcBreakevenSell() {
-      const buy = parseFloat(document.getElementById('beBuyInput').value);
-      if (isNaN(buy) || buy <= 0) {
-        alert('請輸入有效的買入股價！');
-        return;
-      }
-      const sell = findBreakevenSell(buy);
-      renderBreakevenResult(
-        '已知買入價 → 賣出兩平價',
-        `賣出需達 $${fmtPrice(sell)}`,
-        buy, sell
-      );
-    }
-
-    function calcBreakevenBuy() {
-      const sell = parseFloat(document.getElementById('beSellInput').value);
-      if (isNaN(sell) || sell <= 0) {
-        alert('請輸入有效的賣出股價！');
-        return;
-      }
-      const buy = findBreakevenBuy(sell);
-      renderBreakevenResult(
-        '已知賣出價 → 買入兩平價',
-        `買入不可超過 $${fmtPrice(buy)}`,
-        buy, sell
-      );
-    }
-
-    document.addEventListener('keydown', e => {
-      if (e.key === 'Enter') {
-        if (document.activeElement && document.activeElement.id === 'beBuyInput') {
-          calcBreakevenSell();
-        } else if (document.activeElement && document.activeElement.id === 'beSellInput') {
-          calcBreakevenBuy();
-        } else {
-          calculate();
-        }
-      }
-    });
-
-    // ── PWA Service Worker 註冊（啟用離線使用） ──
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js').catch(() => {});
-      });
-    }
-  </script>
-
+  if('serviceWorker' in navigator)
+    window.addEventListener('load', ()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+</script>
 </body>
 </html>
