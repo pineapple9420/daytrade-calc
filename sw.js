@@ -1,4 +1,4 @@
-const CACHE_NAME = 'daytrade-calc-v1';
+const CACHE_NAME = 'daytrade-calc-v2';
 const ASSETS = [
   './',
   './index.html',
