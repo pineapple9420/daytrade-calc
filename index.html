@@ -22,7 +22,11 @@
     body{font-family:'Noto Sans TC',-apple-system,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
     .screen{display:none;flex-direction:column;min-height:100vh;}
     .screen.active{display:flex;}
-    .nav{background:rgba(242,242,247,0.94);backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);border-bottom:1px solid var(--border);padding:max(44px,env(safe-area-inset-top)) 16px 12px;display:flex;align-items:center;gap:8px;position:sticky;top:0;z-index:10;}
+    .nav{background:rgba(242,242,247,0.94);backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);border-bottom:1px solid var(--border);padding:12px 16px 12px;display:flex;align-items:center;gap:8px;position:sticky;top:0;z-index:10;}
+    /* 加到主畫面後以 App 模式執行時，才加入頂部安全區域 padding 避開瀏海/Dynamic Island */
+    @media (display-mode: standalone) {
+      .nav { padding-top: max(44px, env(safe-area-inset-top)); }
+    }
     .nav-title{flex:1;font-size:1rem;font-weight:700;text-align:center;}
     .back-btn{display:flex;align-items:center;gap:4px;color:var(--accent);font-size:0.95rem;background:none;border:none;cursor:pointer;padding:4px 0;min-width:60px;}
     .back-btn svg{width:9px;height:15px;flex-shrink:0;}
